@@ -1,5 +1,5 @@
 """
-TENET Agent – PR Reviewer
+TENET Agent - PR Reviewer
 Triggered by: tenet-pr-review.yml on pull_request events.
 
 Reads the PR diff, sends it to Gemini for a security-focused review,
@@ -7,7 +7,9 @@ and posts the result as a PR comment.
 """
 
 import os
+import re
 import sys
+
 from utils import (
     get_github_client,
     get_repo,
@@ -17,15 +19,24 @@ from utils import (
     truncate_diff,
     post_pr_comment,
 )
-from prompts import PR_REVIEW_TEMPLATE
+from prompts import PR_REVIEW_SYSTEM, PR_REVIEW_TEMPLATE
 
 
 def main():
-    print("🛡️  TENET Agent – PR Reviewer starting...")
+    """Run the TENET Agent PR review workflow."""
+    print("🛡️  TENET Agent - PR Reviewer starting...")
 
     # ── Gather context from environment variables ──────────────────────────────
-    token = os.environ["GITHUB_TOKEN"]
-    repo_name = os.environ["REPO"]
+    token = os.environ.get("GITHUB_TOKEN")
+    if not token:
+        print("❌ GITHUB_TOKEN is not set.")
+        sys.exit(1)
+
+    repo_name = os.environ.get("REPO")
+    if not repo_name:
+        print("❌ REPO environment variable is not set.")
+        sys.exit(1)
+
     pr_number = int(os.environ["PR_NUMBER"])
     pr_title = os.environ.get("PR_TITLE", "")
     pr_body = os.environ.get("PR_BODY", "") or "*No description provided.*"
@@ -50,24 +61,25 @@ def main():
     print(f"📏 Diff size: {len(diff)} chars")
 
     # ── Build the review prompt ────────────────────────────────────────────────
-    prompt = PR_REVIEW_TEMPLATE.format(
+    user_prompt = PR_REVIEW_TEMPLATE.format(
         pr_title=pr_title,
         pr_author=pr_author,
         pr_body=pr_body,
         diff=diff,
         pr_number=pr_number,
     )
+    # Prepend system prompt so reviewer behaviour is consistent
+    prompt = f"{PR_REVIEW_SYSTEM}\n\n{user_prompt}"
 
     # ── Call Gemini ────────────────────────────────────────────────────────────
     print("🤖 Calling Gemini for security review...")
     model = get_llm_client()
     review_text = call_llm(model, prompt)
 
-    if (
-        not review_text
-        or review_text.startswith("⚠️ TENET Agent encountered an error calling the LLM:")
+    if not review_text or review_text.startswith(
+        "⚠️ TENET Agent encountered an error calling the LLM:"
     ):
-        print("❌ LLM returned an empty response.")
+        print("❌ LLM returned an empty or error response.")
         sys.exit(1)
 
     print("✍️  Review generated. Posting to PR...")
@@ -78,7 +90,9 @@ def main():
     post_pr_comment(repo, pr_number, review_text)
 
     # ── Check for critical findings and add label ──────────────────────────────
-    if "CRITICAL" in review_text or "HIGH" in review_text:
+    # Use a scoped regex to avoid false positives where "HIGH" or "CRITICAL"
+    # appears in the diff content rather than in an actual severity finding.
+    if re.search(r"\[SEVERITY:\s*(CRITICAL|HIGH)\]", review_text, flags=re.IGNORECASE):
         try:
             pr = repo.get_pull(pr_number)
             existing_labels = [lbl.name for lbl in pr.get_labels()]
