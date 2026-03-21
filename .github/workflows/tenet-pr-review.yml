@@ -13,11 +13,10 @@ jobs:
   tenet-review:
     name: TENET Security Review
     runs-on: ubuntu-latest
-    # Skip bot-created PRs to avoid loops, and skip gracefully if secret is not configured
-    if: >
+    # Skip bot-created PRs to avoid loops
+    if: |
       github.actor != 'github-actions[bot]' &&
-      github.actor != 'coderabbitai[bot]' &&
-      secrets.TENET_AI_KEY != ''
+      github.actor != 'coderabbitai[bot]'
 
     steps:
       - name: Checkout repository
@@ -33,8 +32,17 @@ jobs:
           cache-dependency-path: .github/tenet_agent/requirements.txt
 
       - name: Install TENET agent dependencies
+        run: pip install -r .github/tenet_agent/requirements.txt
+
+      - name: Check TENET_AI_KEY is configured
         run: |
-          pip install -r .github/tenet_agent/requirements.txt
+          if [ -z "$TENET_AI_KEY" ]; then
+            echo "⚠️  TENET_AI_KEY is not set — skipping review."
+            echo "Add it under Settings → Secrets and variables → Actions."
+            exit 0
+          fi
+        env:
+          TENET_AI_KEY: ${{ secrets.TENET_AI_KEY }}
 
       - name: Run TENET PR Review
         env:
