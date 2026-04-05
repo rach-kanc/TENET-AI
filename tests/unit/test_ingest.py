@@ -253,6 +253,21 @@ class TestEventRetrievalEndpoint:
         )
         assert response.status_code == 404
 
+    @patch("services.ingest.app.redis_client", MagicMock())
+    @patch("services.ingest.app.redis_call", new_callable=AsyncMock)
+    def test_get_event_accepts_null_metadata(self, mock_redis_call):
+        """Should support historic events persisted with null metadata."""
+        mock_redis_call.return_value = '{"event_id":"evt-2","timestamp":"2026-01-01T00:00:00","source_type":"chat","source_id":"src-2","model":"gpt-4","prompt":"hello","system_prompt":null,"metadata":null,"blocked":false,"risk_score":0.0,"verdict":"benign"}'
+
+        response = client.get(
+            "/v1/events/evt-2",
+            headers={"X-API-Key": TEST_API_KEY},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["event_id"] == "evt-2"
+        assert payload["metadata"] is None
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

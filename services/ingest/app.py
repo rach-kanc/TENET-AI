@@ -194,7 +194,7 @@ class EventDetailResponse(BaseModel):
     model: str
     prompt: str
     system_prompt: Optional[str] = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    metadata: Optional[dict[str, Any]] = None
     blocked: bool
     risk_score: float
     verdict: str
@@ -455,8 +455,6 @@ async def get_event(event_id: str, x_api_key: str = Header(...)):
 
     try:
         data = await redis_call(redis_client.get(f"tenet:event:{event_id}"))
-        if data is None:
-            raise HTTPException(status_code=503, detail="Service degraded - event store unavailable")
         if not data:
             raise HTTPException(status_code=404, detail="Event not found")
         return EventDetailResponse(**json.loads(data))
