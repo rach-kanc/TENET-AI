@@ -57,8 +57,8 @@ This script uses **Scikit-Learn** to build the protection brain. It handles:
 - **TF-IDF N-grams**: Looks at sequences of words (e.g., "forget your system") instead of just single words.
 - **Model Persistence**: Saves the brain as `.joblib` files for the Analyzer to load.
 
-### Plug-and-Play Integration (`examples/llm_plugin_demo.py`)
-This is the "Proof of Concept" for developers. It wraps any existing LLM client with code that:
+### Plug-and-Play Integration (`tenet_plugin/client.py`, `examples/llm_plugin_demo.py`)
+The reusable plugin client wraps any existing LLM/agent client with code that:
 1. Calls TENET AI.
 2. Waits for a blocking decision.
 3. Only proceeds to the LLM if the prompt is safe.

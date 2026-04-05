@@ -172,6 +172,32 @@ python services/analyzer/app.py    # Port 8100
 
 ### Integrate into Your App
 
+#### Option A: Framework-Agnostic Plugin (Recommended)
+
+```python
+from tenet_plugin import TenetSecurityPlugin
+
+plugin = TenetSecurityPlugin(
+    api_url="http://localhost:8000",
+    api_key="your-api-key",
+    source_type="my-agent",
+    source_id="worker-01",
+)
+
+def provider_call(prompt: str, model: str):
+    # Your OpenAI/Anthropic/local-model invocation here
+    return {"text": f"response for {model}"}
+
+result = plugin.secure_call(
+    prompt="Summarize this report",
+    model="gpt-4.1",
+    llm_callable=provider_call,
+    llm_kwargs={"prompt": "Summarize this report", "model": "gpt-4.1"},
+)
+```
+
+#### Option B: Direct API Call
+
 ```python
 import openai
 import requests
