@@ -10,6 +10,7 @@ This module provides ML-based detection for:
 import os
 import json
 import logging
+import hashlib
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 from dataclasses import dataclass
@@ -149,8 +150,18 @@ class PhishingDetector:
         try:
             model_file = Path(self.model_path) / "prompt_detector.joblib"
             vectorizer_file = Path(self.model_path) / "vectorizer.joblib"
+            metadata_file = Path(self.model_path) / "metadata.json"
+            checksums_file = Path(self.model_path) / "checksums.json"
             
             if model_file.exists() and vectorizer_file.exists():
+                if metadata_file.exists():
+                    metadata = self._load_metadata(metadata_file)
+                    if not metadata:
+                        return False
+
+                if checksums_file.exists() and not self._verify_checksums(checksums_file):
+                    return False
+
                 self.model = joblib.load(model_file)
                 self.vectorizer = joblib.load(vectorizer_file)
                 self.model_loaded = True
@@ -162,6 +173,43 @@ class PhishingDetector:
         except Exception as e:
             logger.error(f"Failed to load ML model: {e}")
             return False
+
+    def _load_metadata(self, metadata_file: Path) -> Optional[Dict[str, Any]]:
+        """Load and validate model metadata."""
+        with open(metadata_file, "r", encoding="utf-8") as f:
+            metadata = json.load(f)
+
+        required_fields = ["trained_at", "accuracy", "model_type", "version"]
+        missing = [field for field in required_fields if field not in metadata]
+        if missing:
+            logger.error("Model metadata missing required fields: %s", ", ".join(missing))
+            return None
+
+        return metadata
+
+    def _verify_checksums(self, checksums_file: Path) -> bool:
+        """Verify model artifact checksums when a checksum manifest is present."""
+        with open(checksums_file, "r", encoding="utf-8") as f:
+            checksums = json.load(f)
+
+        artifacts = checksums.get("artifacts", {})
+        if not artifacts:
+            logger.error("Checksum manifest exists but contains no artifacts.")
+            return False
+
+        for filename, expected_hash in artifacts.items():
+            artifact_path = Path(self.model_path) / filename
+            if not artifact_path.exists():
+                logger.error("Artifact referenced in checksum manifest is missing: %s", filename)
+                return False
+
+            digest = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+            if digest != expected_hash:
+                logger.error("Checksum mismatch for %s", filename)
+                return False
+
+        logger.info("Model artifact checksum verification passed.")
+        return True
     
     def detect(self, prompt: str, context: Optional[str] = None) -> DetectionResult:
         """

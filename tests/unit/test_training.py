@@ -141,6 +141,7 @@ class TestModelSaving:
             assert (Path(tmpdir) / "prompt_detector.joblib").exists()
             assert (Path(tmpdir) / "vectorizer.joblib").exists()
             assert (Path(tmpdir) / "metadata.json").exists()
+            assert (Path(tmpdir) / "checksums.json").exists()
             
             # Check metadata content
             with open(Path(tmpdir) / "metadata.json") as f:
@@ -149,6 +150,7 @@ class TestModelSaving:
             assert metadata["accuracy"] == 0.95
             assert "trained_at" in metadata
             assert "version" in metadata
+            assert metadata["schema_version"] == "1.0.0"
 
 
 class TestModelTesting:
@@ -198,6 +200,7 @@ class TestIntegration:
             assert (model_path / "prompt_detector.joblib").exists()
             assert (model_path / "vectorizer.joblib").exists()
             assert (model_path / "metadata.json").exists()
+            assert (model_path / "checksums.json").exists()
 
 
 if __name__ == "__main__":
