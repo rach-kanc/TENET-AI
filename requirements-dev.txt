@@ -27,4 +27,4 @@ watchdog>=3.0.0
 
 # Type Stubs
 types-requests>=2.31.0
-types-redis>=4.6.0
+types-redis>=4.6.0.20241004
