@@ -80,6 +80,34 @@ The Ingest Service performs fast security checks and forwards events to downstre
 
 ---
 
+## Authentication & Authorization
+
+Most Ingest Service endpoints are protected and require API key authentication.
+
+### Required Header
+
+Include the following header in requests to protected endpoints:
+
+```http
+X-API-Key: your-api-key
+```
+
+### Permission Scopes
+
+The service uses role-based access control (RBAC). Different endpoints require different permissions.
+
+| Endpoint                | Method | Permission Required |
+| ----------------------- | ------ | ------------------- |
+| `/v1/events/llm`        | POST   | `ingest`            |
+| `/v1/events`            | GET    | `read`              |
+| `/v1/events/{event_id}` | GET    | `read`              |
+| `/v1/stats`             | GET    | `read`              |
+| `/v1/circuit-status`    | GET    | `read`              |
+| `/v1/audit/export`      | GET    | `admin`             |
+
+Requests without a valid API key or the required permission will be rejected.
+
+
 ## API Endpoints
 
 ### Health Check
@@ -113,11 +141,13 @@ POST /v1/events/llm
 
 Submits an LLM request for security processing.
 
-#### Headers
+**Authentication Required**
 
 ```http
 X-API-Key: your-api-key
 ```
+
+**Required Permission:** `ingest`
 
 #### Request Body
 
@@ -143,14 +173,20 @@ X-API-Key: your-api-key
   "degraded": false
 }
 ```
-
 ---
 
 ### List Events
-
 ```http
 GET /v1/events
 ```
+
+**Authentication Required**
+
+```http
+X-API-Key: your-api-key
+```
+
+**Required Permission:** `read`
 
 Returns paginated security events.
 
@@ -169,6 +205,14 @@ Returns paginated security events.
 GET /v1/events/{event_id}
 ```
 
+**Authentication Required**
+
+```http
+X-API-Key: your-api-key
+```
+
+**Required Permission:** `read`
+
 Returns detailed information for a specific event.
 
 ---
@@ -178,6 +222,14 @@ Returns detailed information for a specific event.
 ```http
 GET /v1/stats
 ```
+
+**Authentication Required**
+
+```http
+X-API-Key: your-api-key
+```
+
+**Required Permission:** `read`
 
 Returns threat statistics and event metrics.
 
@@ -189,6 +241,14 @@ Returns threat statistics and event metrics.
 GET /v1/circuit-status
 ```
 
+**Authentication Required**
+
+```http
+X-API-Key: your-api-key
+```
+
+**Required Permission:** `read`
+
 Returns Redis circuit breaker information.
 
 ---
@@ -198,6 +258,14 @@ Returns Redis circuit breaker information.
 ```http
 GET /v1/audit/export
 ```
+
+**Authentication Required**
+
+```http
+X-API-Key: your-api-key
+```
+
+**Required Permission:** `admin`
 
 Exports audit records for administrative review.
 
