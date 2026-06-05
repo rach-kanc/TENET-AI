@@ -22,6 +22,6 @@ assignees: ''
 
 <!-- File, page, section, or URL -->
 
-## Additional Context (optional)
+## Additional Context (Optional)
 
 <!-- Screenshots, examples, references, etc. -->
